@@ -21,6 +21,7 @@ from generate_diacritics import generateDiacritics
 from generate_examples import generateExamples
 from polygonizer import PixelImage, generatePolygons
 from generate_continuous_ligatures import generate_continuous_ligatures 
+from font_metadata import finalizeFont
 
 PIXEL_SIZE = 256
 SQRT_TWO = math.sqrt(2)
@@ -103,6 +104,7 @@ def generateFont():
 	print(f"Generated {len(ligatures)} ligatures")
 	print("Generating TTF font...")
 	miracode.generate(outputDir + "Miracode.ttf")
+	finalizeFont(outputDir + "Miracode.ttf")
 	# print("Generating OTF font...")
 	# miracode.generate(outputDir + "Miracode.otf")
 
