@@ -61,7 +61,16 @@ def generateFont():
 		else:
 			drawCharacter(character, miracode[character["name"]], pen)
 
-		miracode[character["name"]].width = PIXEL_SIZE * 6
+		glyph = miracode[character["name"]]
+		if "sideBearing" in character:
+			# Fit an explicitly wide design inside one cell without changing
+			# its vertical stroke thickness or the monospace advance.
+			bearing = character["sideBearing"] * PIXEL_SIZE
+			xMin, _, xMax, _ = glyph.boundingBox()
+			scale = (PIXEL_SIZE * 6 - 2 * bearing) / (xMax - xMin)
+			glyph.transform((scale, 0, 0, 1, bearing - xMin * scale, 0))
+			glyph.round()
+		glyph.width = PIXEL_SIZE * 6
 	print(f"Generated {len(characters)} characters")
 
 	outputDir = "../dist/"

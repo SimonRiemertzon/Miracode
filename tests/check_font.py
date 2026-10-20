@@ -36,6 +36,17 @@ class GeneratedFontTests(unittest.TestCase):
     def test_capital_ring_is_above_base(self):
         self.assertGreater(font['glyf'][cmap[197]].yMax, font['glyf'][cmap[65]].yMax)
 
+    def test_em_dash_has_space_on_both_sides(self):
+        name = cmap[0x2014]
+        glyph = font['glyf'][name]
+        advance = font['hmtx'][name][0]
+        self.assertEqual(advance, font['hmtx'][cmap[ord('s')]][0])
+        self.assertGreaterEqual(glyph.xMin, 128)
+        self.assertGreaterEqual(advance - glyph.xMax, 128)
+        # The user's sample: the dash must not touch either adjacent outline.
+        self.assertGreater(advance + glyph.xMin - font['glyf'][cmap[ord('s')]].xMax, 0)
+        self.assertGreater(advance + font['glyf'][cmap[ord('t')]].xMin - glyph.xMax, 0)
+
     def test_line_metrics_include_every_outline(self):
         for name in font.getGlyphOrder():
             glyph = font['glyf'][name]
@@ -70,7 +81,7 @@ class GeneratedFontTests(unittest.TestCase):
     @unittest.skipUnless(args.baseline, 'Supply --baseline for comparisons')
     def test_unaffected_outlines_preserved(self):
         baseline = TTFont(args.baseline)
-        repaired = {char['codepoint'] for char in accent_references}
+        repaired = {char['codepoint'] for char in accent_references} | {0x2014}
         for code in cmap:
             if code not in repaired:
                 with self.subTest(codepoint=hex(code)):
