@@ -144,6 +144,7 @@ def test():
 		print("All tests passed! 🎉")
 	else:
 		print(f"{failedTests} test(s) failed and {passedTests} tests passed")
+		raise RuntimeError("Source geometry tests failed")
 
 
 def get(pixel, row , col):
