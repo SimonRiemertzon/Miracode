@@ -18,6 +18,8 @@ import zipfile
 import fontforge
 import fontTools
 from fontTools.ttLib import TTFont
+from fontTools.pens.transformPen import TransformPen
+from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCHER_VERSION = '3.5.1'
@@ -47,6 +49,32 @@ def normalize(path, epoch, source_hash):
     font['post'].isFixedPitch = 1
     font.save(path)
     font.close()
+
+def fit_added_icons(base_path, patched_path):
+    base, patched = TTFont(base_path), TTFont(patched_path, recalcTimestamp=False)
+    old, new = base.getBestCmap(), patched.getBestCmap()
+    glyphs = patched.getGlyphSet()
+    bottom, top = base['hhea'].descent, base['hhea'].ascent
+    fitted = 0
+    for code in set(new) - set(old):
+        name = new[code]
+        glyph = patched['glyf'][name]
+        glyph.recalcBounds(patched['glyf'])
+        if not glyph.numberOfContours or (glyph.yMin >= bottom and glyph.yMax <= top):
+            continue
+        scale = min(1, (top - bottom) / (glyph.yMax - glyph.yMin))
+        shift = max(bottom - glyph.yMin * scale, min(0, top - glyph.yMax * scale))
+        advance = patched['hmtx'][name][0]
+        pen = TTGlyphPen(glyphs)
+        glyphs[name].draw(TransformPen(pen, (scale, 0, 0, scale, advance * (1 - scale) / 2, shift)))
+        patched['glyf'][name] = pen.glyph()
+        patched['glyf'][name].recalcBounds(patched['glyf'])
+        patched['hmtx'][name] = (advance, patched['glyf'][name].xMin)
+        fitted += 1
+    patched.save(patched_path)
+    base.close()
+    patched.close()
+    return fitted
 
 def check_patched(base_path, patched_path):
     base, patched = TTFont(base_path), TTFont(patched_path)
@@ -136,10 +164,13 @@ def main():
                 raise RuntimeError(f'Expected one patched font, found {len(generated)}')
             patched = release / generated[0].name
             shutil.copyfile(generated[0], patched)
+            fitted = fit_added_icons(base, patched)
             normalize(patched, epoch, source_hash)
             added = check_patched(base, patched)
+            subprocess.run([sys.executable, str(ROOT / "tests/check_font.py"), str(patched)], env=environment, check=True)
             manifest['nerdFonts'] = {'version': PATCHER_VERSION, 'archiveSha256': PATCHER_SHA256,
                                       'url': PATCHER_URL, 'addedCodepoints': added,
+                                      'iconsFittedToTextMetrics': fitted,
                                       'options': command[3:-2]}
             for path in (patcher / 'src/glyphs').rglob('*'):
                 if path.is_file() and path.name.lower().startswith(('license', 'copying', 'readme')):
