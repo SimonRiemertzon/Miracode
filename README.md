@@ -104,9 +104,10 @@ it is not part of the base-font repair. Oblique styles are not built yet.
 For a direct source build, use `python miracode.py --style Bold` from `src/`.
 
 The style proposal also separates the Swedish rings from their base letters,
-keeps the upper opening of capital Å/Ä at the Regular A's size in Bold,
-and raises the bullet glyph to the center of capital letters. Å's upper body
-is shortened without changing that opening; the small å ring is slightly lower.
+uses identical A bodies in A/Å/Ä within each weight, and preserves the Regular
+upper opening in Bold. Capital accent tops align above the full-height bodies;
+the Regular ring is lighter than Bold and the small å ring is slightly lower.
+The bullet glyph is centered on capital letters.
 These are font outlines, independent of application CSS. Applications that
 draw their own list markers control those markers' positions separately.
 

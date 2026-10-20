@@ -40,24 +40,40 @@ class AccentSpacingTests(unittest.TestCase):
             self.assertGreaterEqual(ring['bounds'][2] - ring['bounds'][0], 384)
             self.assertGreaterEqual(ring['bounds'][3] - ring['bounds'][1], 384)
 
+    def test_capital_accent_tops_align(self):
+        tops = []
+        for font in [regular, bold]:
+            cmap = font.getBestCmap()
+            tops += [font['glyf'][cmap[code]].yMax for code in [0xC5, 0xC4, 0xD6]]
+        self.assertEqual(len(set(tops)), 1)
+
     def test_upper_opening_is_preserved(self):
         expected = upper_opening(regular, 65)
         for font in [regular, bold]:
-            for code in [0xC5, 0xC4]:
+            for code in [65, 0xC5, 0xC4]:
                 actual = upper_opening(font, code)
                 with self.subTest(weight=font['OS/2'].usWeightClass, code=hex(code)):
                     self.assertEqual(actual['area'], expected['area'])
                     self.assertEqual(actual['bounds'][2] - actual['bounds'][0], expected['bounds'][2] - expected['bounds'][0])
                     self.assertEqual(actual['bounds'][3] - actual['bounds'][1], expected['bounds'][3] - expected['bounds'][1])
 
-    def test_ring_body_is_shortened_without_moving_feet(self):
+    def test_capital_a_bodies_are_identical(self):
+        def canonical(points):
+            return min(tuple(points[index:] + points[:index]) for index in range(len(points)))
         for font in [regular, bold]:
-            name = font.getBestCmap()[65]
-            a = font['glyf'][name]
-            bodies = [c for c in contours(font, 0xC5) if c['area'] < 0]
-            body = min(bodies, key=lambda c: c['bounds'][1])
-            self.assertEqual(body['bounds'][1], a.yMin)
-            self.assertEqual(body['bounds'][3], a.yMax - 192)
+            a = contours(font, 65)
+            top = max(c['bounds'][3] for c in a)
+            expected = sorted(canonical(c['points']) for c in a)
+            for code in [0xC5, 0xC4]:
+                body = [c for c in contours(font, code) if c['bounds'][1] < top]
+                with self.subTest(weight=font['OS/2'].usWeightClass, code=hex(code)):
+                    self.assertEqual(sorted(canonical(c['points']) for c in body), expected)
+
+    def test_regular_ring_is_lighter_than_bold(self):
+        for code in [0xC5, 0xE5]:
+            holes = [max((c for c in contours(font, code) if c['area'] > 0), key=lambda c: c['bounds'][1])
+                     for font in [regular, bold]]
+            self.assertGreater(holes[0]['area'], holes[1]['area'])
 
     def test_bullet_is_centered_on_capitals(self):
         for font in [regular, bold]:

@@ -62,7 +62,7 @@ def generateFont():
 	for character in characters:
 		miracode.createChar(character["codepoint"], character["name"])
 		glyph = miracode[character["name"]]
-		if character["codepoint"] in (0xC5, 0xE5) or (character["codepoint"] == 0xC4 and args.style == "Bold"):
+		if character["codepoint"] in (0xC5, 0xE5, 0xC4, 0xD6) or (character["codepoint"] == 65 and args.style == "Bold"):
 			drawSwedishAccent(glyph, character["codepoint"], charactersByCodepoint,
 			                  diacritics, drawCharacter, bold=args.style == "Bold")
 		else:
