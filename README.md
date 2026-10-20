@@ -94,7 +94,21 @@ ligature advances are checked after patching.
 
 Use `--patcher-archive /path/to/FontPatcher.zip` for a verified offline archive,
 `--base-only` to skip icons, and `--output /path/to/release` to select a directory.
-Only Regular is built; additional weights and obliques are a separate feature.
+By default only Regular is built; additional weights and obliques are a separate feature.
+
+The experimental `--with-bold` option also builds a source-generated Bold
+with a 312-unit stroke (Regular uses 192). It keeps the glyph centerlines,
+character advances, ligatures, and family line metrics consistent. This is
+a separate style proposal requiring design review, especially at small sizes;
+it is not part of the base-font repair. Oblique styles are not built yet.
+For a direct source build, use `python miracode.py --style Bold` from `src/`.
+
+The style proposal also separates the Swedish rings from their base letters,
+keeps the upper opening of capital Å/Ä at the Regular A's size in Bold,
+and raises the bullet glyph to the center of capital letters. Å's upper body
+is shortened without changing that opening; the small å ring is slightly lower.
+These are font outlines, independent of application CSS. Applications that
+draw their own list markers control those markers' positions separately.
 
 The release build normalizes timestamps and generated identifiers. With the
 same source, pinned toolchain, and compression runtime, repeated builds produce

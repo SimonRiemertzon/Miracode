@@ -50,6 +50,18 @@ def normalize(path, epoch, source_hash):
     font.save(path)
     font.close()
 
+def align_family_metrics(paths):
+    fonts = [TTFont(path, recalcTimestamp=False) for path in paths]
+    ascent = max(font['hhea'].ascent for font in fonts)
+    descent = min(font['hhea'].descent for font in fonts)
+    for path, font in zip(paths, fonts):
+        os2 = font['OS/2']
+        font['hhea'].ascent = os2.sTypoAscender = os2.usWinAscent = ascent
+        font['hhea'].descent = os2.sTypoDescender = descent
+        os2.usWinDescent = -descent
+        font.save(path)
+        font.close()
+
 def fit_added_icons(base_path, patched_path):
     base, patched = TTFont(base_path), TTFont(patched_path, recalcTimestamp=False)
     old, new = base.getBestCmap(), patched.getBestCmap()
@@ -96,6 +108,8 @@ def check_patched(base_path, patched_path):
         return result
     if ligatures(base) != ligatures(patched):
         raise RuntimeError('Patcher changed ligatures or their advances')
+    if base['OS/2'].usWeightClass != patched['OS/2'].usWeightClass:
+        raise RuntimeError('Patcher changed the font weight')
     for code in [0xE0A0, 0xE0B0, 0xF07B, 0xF09B, 0xF0001]:
         if code not in new or patched['hmtx'][new[code]][0] != 1536:
             raise RuntimeError(f'Missing or non-single-cell icon U+{code:04X}')
@@ -107,6 +121,7 @@ def check_patched(base_path, patched_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-only', action='store_true', help='Skip the Nerd Fonts stage')
+    parser.add_argument('--with-bold', action='store_true', help='Include the experimental source-generated Bold')
     parser.add_argument('--patcher-archive', type=Path, help='Use a local, checksum-verified FontPatcher.zip')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist/release')
     args = parser.parse_args()
@@ -127,13 +142,28 @@ def main():
         stage = Path(temporary)
         shutil.copytree(ROOT / 'src', stage / 'src', ignore=shutil.ignore_patterns('__pycache__'))
         (stage / 'examples').mkdir()
-        run([sys.executable, 'miracode.py'], cwd=stage / 'src', env=environment)
         release = stage / 'release'
         release.mkdir()
-        base = release / 'Miracode.ttf'
-        shutil.copyfile(stage / 'dist/Miracode.ttf', base)
-        normalize(base, epoch, source_hash)
-        subprocess.run([sys.executable, str(ROOT / 'tests/check_font.py'), str(base)], env=environment, check=True)
+        styles = ['Regular', 'Bold'] if args.with_bold else ['Regular']
+        bases = []
+        for style in styles:
+            run([sys.executable, 'miracode.py', '--style', style], cwd=stage / 'src', env=environment)
+            filename = 'Miracode-Bold.ttf' if style == 'Bold' else 'Miracode.ttf'
+            base = release / filename
+            shutil.copyfile(stage / 'dist' / filename, base)
+            bases.append(base)
+        align_family_metrics(bases)
+        for style, base in zip(styles, bases):
+            normalize(base, epoch, source_hash)
+            subprocess.run([sys.executable, str(ROOT / 'tests/check_font.py'), str(base),
+                            '--weight', '700' if style == 'Bold' else '400'], env=environment, check=True)
+        if args.with_bold:
+            subprocess.run([sys.executable, str(ROOT / 'tests/check_styles.py'), *map(str, bases)],
+                           env=environment, check=True)
+            subprocess.run([sys.executable, str(ROOT / 'tests/check_accent_spacing.py'), *map(str, bases)],
+                           env=environment, check=True)
+            manifest['styles'] = {'Regular': {'strokeUnits': 192},
+                                  'Bold': {'strokeUnits': 312, 'experimental': True}}
         shutil.copyfile(ROOT / 'LICENSE', release / 'LICENSE.txt')
         if not args.base_only:
             archive = args.patcher_archive
@@ -155,19 +185,23 @@ def main():
                 package.extractall(patcher)
             patched_dir = stage / 'patched'
             patched_dir.mkdir()
-            command = [sys.executable, str(patcher / 'font-patcher'), str(base), '--complete',
-                       '--careful', '--single-width-glyphs', '--metrics', 'TYPO',
-                       '--no-progressbars', '--outputdir', str(patched_dir)]
-            run(command, cwd=patcher, env=environment)
-            generated = list(patched_dir.glob('*.ttf'))
-            if len(generated) != 1:
-                raise RuntimeError(f'Expected one patched font, found {len(generated)}')
-            patched = release / generated[0].name
-            shutil.copyfile(generated[0], patched)
-            fitted = fit_added_icons(base, patched)
-            normalize(patched, epoch, source_hash)
-            added = check_patched(base, patched)
-            subprocess.run([sys.executable, str(ROOT / "tests/check_font.py"), str(patched)], env=environment, check=True)
+            for style, base in zip(styles, bases):
+                style_dir = patched_dir / style
+                style_dir.mkdir()
+                command = [sys.executable, str(patcher / 'font-patcher'), str(base), '--complete',
+                           '--careful', '--single-width-glyphs', '--metrics', 'TYPO',
+                           '--no-progressbars', '--outputdir', str(style_dir)]
+                run(command, cwd=patcher, env=environment)
+                generated = list(style_dir.glob('*.ttf'))
+                if len(generated) != 1:
+                    raise RuntimeError(f'Expected one patched font, found {len(generated)}')
+                patched = release / generated[0].name
+                shutil.copyfile(generated[0], patched)
+                fitted = fit_added_icons(base, patched)
+                normalize(patched, epoch, source_hash)
+                added = check_patched(base, patched)
+                subprocess.run([sys.executable, str(ROOT / 'tests/check_font.py'), str(patched),
+                                '--weight', '700' if style == 'Bold' else '400'], env=environment, check=True)
             manifest['nerdFonts'] = {'version': PATCHER_VERSION, 'archiveSha256': PATCHER_SHA256,
                                       'url': PATCHER_URL, 'addedCodepoints': added,
                                       'iconsFittedToTextMetrics': fitted,
@@ -181,8 +215,9 @@ def main():
             if path.is_file():
                 manifest['files'].append({'file': str(path.relative_to(release)), 'sha256': sha256(path)})
         (release / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-        (release / 'INSTALL.txt').write_text('Install the TTF files for the current user, then restart applications.\n'
-                                           'This source build contains Regular only. Additional styles are a separate proposal.\n')
+        (release / 'INSTALL.txt').write_text('Install the TTF files for the current user, then restart applications.\n' +
+            ('This review build includes experimental source-generated Bold; obliques remain a separate proposal.\n'
+             if args.with_bold else 'This source build contains Regular only. Additional styles are a separate proposal.\n'))
         archive = release / 'Miracode-fonts.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as package:
             for path in sorted(release.rglob('*')):

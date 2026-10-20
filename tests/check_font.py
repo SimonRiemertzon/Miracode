@@ -14,6 +14,7 @@ from fontTools.ttLib import TTFont
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('font', type=Path)
 parser.add_argument('--baseline', type=Path)
+parser.add_argument('--weight', type=int, choices=(400, 700), default=400)
 args = parser.parse_args()
 font = TTFont(args.font)
 cmap = font.getBestCmap()
@@ -28,6 +29,21 @@ def outline(font, code):
     return pen.value
 
 class GeneratedFontTests(unittest.TestCase):
+    def test_nondescending_letters_share_a_bottom(self):
+        letters = 'AEO\u00c5\u00c4\u00d6aenost\u00e5\u00e4\u00f6'
+        self.assertEqual(len({font['glyf'][cmap[ord(c)]].yMin for c in letters}), 1)
+
+    def test_lowercase_letters_share_an_x_height(self):
+        self.assertEqual(len({font['glyf'][cmap[ord(c)]].yMax for c in 'aenosp'}), 1)
+
+    def test_style_metadata(self):
+        bold = args.weight == 700
+        self.assertEqual(font['OS/2'].usWeightClass, args.weight)
+        self.assertEqual(bool(font['OS/2'].fsSelection & 32), bold)
+        self.assertEqual(bool(font['OS/2'].fsSelection & 64), not bold)
+        self.assertEqual(font['head'].macStyle & 3, 1 if bold else 0)
+        self.assertEqual(font['name'].getDebugName(2), 'Bold' if bold else 'Regular')
+
     def test_explicit_accents_are_present(self):
         for char in accent_references:
             with self.subTest(character=char['character']):
@@ -81,7 +97,7 @@ class GeneratedFontTests(unittest.TestCase):
     @unittest.skipUnless(args.baseline, 'Supply --baseline for comparisons')
     def test_unaffected_outlines_preserved(self):
         baseline = TTFont(args.baseline)
-        repaired = {char['codepoint'] for char in accent_references} | {0x2014}
+        repaired = {char['codepoint'] for char in accent_references} | {0x2014, 0xE5, 0x2022}
         for code in cmap:
             if code not in repaired:
                 with self.subTest(codepoint=hex(code)):
