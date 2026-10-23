@@ -97,7 +97,9 @@ class GeneratedFontTests(unittest.TestCase):
     @unittest.skipUnless(args.baseline, 'Supply --baseline for comparisons')
     def test_unaffected_outlines_preserved(self):
         baseline = TTFont(args.baseline)
-        repaired = {char['codepoint'] for char in accent_references} | {0x2014, 0xC4, 0xD6, 0xE5, 0x2022}
+        # Latin i/j and their Cyrillic source references have separately tested
+        # text-size dots; all other unrepaired outlines remain exact baselines.
+        repaired = {char['codepoint'] for char in accent_references} | {0x2014, 0xC4, 0xD6, 0xE5, 0x2022, 0x69, 0x6A, 0x456, 0x458}
         for code in cmap:
             if code not in repaired:
                 with self.subTest(codepoint=hex(code)):

@@ -628,7 +628,15 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 			if pixels[row][col] == 1:
 				if countNeighbors(pixels, row, col) == 0:
 					# Isolated dot
-					drawCircle(pen, x, y, DOT_RADIUS)
+					if character.get("codepoint") in (105, 106):
+						# Text-size i/j dots need an open gap even in 10px Bold.
+						# Keep the source stem and baseline; balance dot area
+						# separately from stroke expansion and lift it slightly.
+						radius = 160 if STROKE > 192 else 128
+						lift = 160 if STROKE > 192 else 96
+						drawCircle(pen, x, y + lift, radius)
+					else:
+						drawCircle(pen, x, y, DOT_RADIUS)
 					continue
 				elif jointAtPoint.get((col, row)) == 0:
 					# No joint or end cap

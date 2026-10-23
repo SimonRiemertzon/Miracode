@@ -162,6 +162,8 @@ def main():
                            env=environment, check=True)
             subprocess.run([sys.executable, str(ROOT / 'tests/check_accent_spacing.py'), *map(str, bases)],
                            env=environment, check=True)
+            subprocess.run([sys.executable, str(ROOT / 'tests/check_text_dots.py'), *map(str, bases)],
+                           env=environment, check=True)
             manifest['styles'] = {'Regular': {'strokeUnits': 192},
                                   'Bold': {'strokeUnits': 312, 'experimental': True}}
         shutil.copyfile(ROOT / 'LICENSE', release / 'LICENSE.txt')

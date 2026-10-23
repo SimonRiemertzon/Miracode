@@ -108,6 +108,10 @@ uses identical A bodies in A/Å/Ä within each weight, and preserves the Regular
 upper opening in Bold. Capital accent tops align above the full-height bodies;
 the Regular ring is lighter than Bold and the small å ring is slightly lower.
 The bullet glyph is centered on capital letters.
+The text-size proposal also balances and separates the i/j dots in both
+weights and their Cyrillic references. The Miracode/Miranda word ligatures
+reuse the ordinary i instead of a notched logo dot; substitutions and advances
+are preserved. No automatic hinting is added.
 These are font outlines, independent of application CSS. Applications that
 draw their own list markers control those markers' positions separately.
 
