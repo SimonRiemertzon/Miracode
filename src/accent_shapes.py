@@ -37,8 +37,10 @@ def drawSwedishAccent(glyph, code, characters, diacritics, draw, bold=False):
         data = {'pixels': diacritics[accent_name]['pixels'],
                 'descent': -7 if capital and ring else (-5.5 if ring else -8)}
         accent = component('accent', data, 192 if ring else (312 if bold else 192))
-        # Align capital accent tops, leaving room above the full-height A.
-        shift = 2912 - accent.boundingBox()[3] if capital else 0
+        # Keep the accepted capital ring. Lower only the capital diaeresis
+        # by half a source pixel; the full A/O layer above stays untouched.
+        accent_top = 2912 if ring else 2784
+        shift = accent_top - accent.boundingBox()[3] if capital else 0
         for contour in accent.foreground:
             contour = contour.dup()
             if ring and not contour.isClockwise():
