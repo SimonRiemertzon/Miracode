@@ -105,8 +105,9 @@ For a direct source build, use `python miracode.py --style Bold` from `src/`.
 
 The style proposal also separates the Swedish rings from their base letters,
 uses identical A bodies in A/Å/Ä within each weight, and preserves the Regular
-upper opening in Bold. Capital Ä/Ö dots sit 128 units below the previous
-2912-unit top, while the full A/O bodies and accepted Å ring stay unchanged.
+upper opening in Bold. Capital Ä/Ö dot centers align with the accepted Å ring
+center at 2560 units in both weights. The full A/O bodies, dot shapes and Å
+ring stay unchanged; mark tops differ naturally with their stroke weight.
 The Regular ring is lighter than Bold and the small å ring is slightly lower.
 The bullet glyph is centered on capital letters.
 The text-size proposal also balances and separates the i/j dots in both
