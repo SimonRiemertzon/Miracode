@@ -52,6 +52,13 @@ class GeneratedFontTests(unittest.TestCase):
     def test_capital_ring_is_above_base(self):
         self.assertGreater(font['glyf'][cmap[197]].yMax, font['glyf'][cmap[65]].yMax)
 
+    def test_list_marker_centers(self):
+        for code in (0x2022, 0x25E6, 0x25AA, 0x25A0, 0x25CF, 0x25CB, 0x25A1):
+            with self.subTest(codepoint=hex(code)):
+                self.assertIn(code, cmap)
+                glyph = font['glyf'][cmap[code]]
+                self.assertEqual(glyph.yMin + glyph.yMax, 2304)
+
     def test_em_dash_has_space_on_both_sides(self):
         name = cmap[0x2014]
         glyph = font['glyf'][name]
@@ -69,14 +76,15 @@ class GeneratedFontTests(unittest.TestCase):
             glyph.recalcBounds(font['glyf'])
             if glyph.numberOfContours:
                 with self.subTest(glyph=name):
-                    self.assertGreaterEqual(font['OS/2'].sTypoAscender, glyph.yMax)
-                    self.assertLessEqual(font['OS/2'].sTypoDescender, glyph.yMin)
+                    self.assertGreaterEqual(font['OS/2'].usWinAscent, glyph.yMax)
+                    self.assertGreaterEqual(font['OS/2'].usWinDescent, -glyph.yMin)
 
     def test_line_metrics_agree(self):
         os2, hhea = font['OS/2'], font['hhea']
         self.assertEqual((hhea.ascent, hhea.descent, hhea.lineGap),
                          (os2.sTypoAscender, os2.sTypoDescender, os2.sTypoLineGap))
-        self.assertEqual((os2.usWinAscent, -os2.usWinDescent), (hhea.ascent, hhea.descent))
+        self.assertGreaterEqual(os2.usWinAscent, hhea.ascent)
+        self.assertGreaterEqual(os2.usWinDescent, -hhea.descent)
         self.assertEqual(hhea.lineGap, 0)
         self.assertTrue(os2.fsSelection & 128)
 
@@ -85,6 +93,10 @@ class GeneratedFontTests(unittest.TestCase):
         self.assertEqual({font['hmtx'][cmap[code]][0] for code in range(32, 127)}, {1536})
         self.assertEqual(font['post'].isFixedPitch, 1)
         self.assertEqual(font['OS/2'].panose.bProportion, 9)
+
+    def test_vector_outlines_without_bitmap_strikes(self):
+        self.assertIn('glyf', font)
+        self.assertFalse({'EBDT','EBLC','EBSC','CBDT','CBLC','sbix'} & set(font.keys()))
 
     @unittest.skipUnless(args.baseline, 'Supply --baseline for comparisons')
     def test_coverage_and_all_advances_preserved(self):

@@ -6,6 +6,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -18,8 +19,6 @@ import zipfile
 import fontforge
 import fontTools
 from fontTools.ttLib import TTFont
-from fontTools.pens.transformPen import TransformPen
-from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCHER_VERSION = '3.5.1'
@@ -62,31 +61,22 @@ def align_family_metrics(paths):
         font.save(path)
         font.close()
 
-def fit_added_icons(base_path, patched_path):
-    base, patched = TTFont(base_path), TTFont(patched_path, recalcTimestamp=False)
-    old, new = base.getBestCmap(), patched.getBestCmap()
-    glyphs = patched.getGlyphSet()
-    bottom, top = base['hhea'].descent, base['hhea'].ascent
-    fitted = 0
-    for code in set(new) - set(old):
-        name = new[code]
-        glyph = patched['glyf'][name]
-        glyph.recalcBounds(patched['glyf'])
-        if not glyph.numberOfContours or (glyph.yMin >= bottom and glyph.yMax <= top):
-            continue
-        scale = min(1, (top - bottom) / (glyph.yMax - glyph.yMin))
-        shift = max(bottom - glyph.yMin * scale, min(0, top - glyph.yMax * scale))
-        advance = patched['hmtx'][name][0]
-        pen = TTGlyphPen(glyphs)
-        glyphs[name].draw(TransformPen(pen, (scale, 0, 0, scale, advance * (1 - scale) / 2, shift)))
-        patched['glyf'][name] = pen.glyph()
-        patched['glyf'][name].recalcBounds(patched['glyf'])
-        patched['hmtx'][name] = (advance, patched['glyf'][name].xMin)
-        fitted += 1
-    patched.save(patched_path)
-    base.close()
-    patched.close()
-    return fitted
+def protect_windows_clipping(patched_path):
+    # Preserve intentional Box/Powerline overlap and typographic line spacing.
+    # Expand only the Windows clipping rectangle, never the glyph outlines.
+    font = TTFont(patched_path, recalcTimestamp=False)
+    top, bottom = font['hhea'].ascent, font['hhea'].descent
+    for name in font.getGlyphOrder():
+        glyph = font['glyf'][name]
+        glyph.recalcBounds(font['glyf'])
+        top = max(top, getattr(glyph, 'yMax', 0))
+        bottom = min(bottom, getattr(glyph, 'yMin', 0))
+    font['OS/2'].usWinAscent = math.ceil(top / 64) * 64
+    font['OS/2'].usWinDescent = math.ceil(-bottom / 64) * 64
+    result = {'ascent': font['OS/2'].usWinAscent, 'descent': font['OS/2'].usWinDescent,
+              'outlinesChanged': False, 'typographicSpacingChanged': False}
+    font.save(patched_path)
+    return result
 
 def check_patched(base_path, patched_path):
     base, patched = TTFont(base_path), TTFont(patched_path)
@@ -165,7 +155,7 @@ def main():
             subprocess.run([sys.executable, str(ROOT / 'tests/check_text_dots.py'), *map(str, bases)],
                            env=environment, check=True)
             manifest['styles'] = {'Regular': {'strokeUnits': 192},
-                                  'Bold': {'strokeUnits': 312, 'experimental': True}}
+                                  'Bold': {'strokeUnits': 312, 'experimental': False}}
         shutil.copyfile(ROOT / 'LICENSE', release / 'LICENSE.txt')
         if not args.base_only:
             archive = args.patcher_archive
@@ -191,7 +181,7 @@ def main():
                 style_dir = patched_dir / style
                 style_dir.mkdir()
                 command = [sys.executable, str(patcher / 'font-patcher'), str(base), '--complete',
-                           '--careful', '--single-width-glyphs', '--metrics', 'TYPO',
+                           '--careful', '--single-width-glyphs', '--metrics', 'TYPO', '--name', 'postscript',
                            '--no-progressbars', '--outputdir', str(style_dir)]
                 run(command, cwd=patcher, env=environment)
                 generated = list(style_dir.glob('*.ttf'))
@@ -199,14 +189,14 @@ def main():
                     raise RuntimeError(f'Expected one patched font, found {len(generated)}')
                 patched = release / generated[0].name
                 shutil.copyfile(generated[0], patched)
-                fitted = fit_added_icons(base, patched)
+                clipping = protect_windows_clipping(patched)
                 normalize(patched, epoch, source_hash)
                 added = check_patched(base, patched)
                 subprocess.run([sys.executable, str(ROOT / 'tests/check_font.py'), str(patched),
                                 '--weight', '700' if style == 'Bold' else '400'], env=environment, check=True)
             manifest['nerdFonts'] = {'version': PATCHER_VERSION, 'archiveSha256': PATCHER_SHA256,
                                       'url': PATCHER_URL, 'addedCodepoints': added,
-                                      'iconsFittedToTextMetrics': fitted,
+                                      'windowsClipping': clipping,
                                       'options': command[3:-2]}
             for path in (patcher / 'src/glyphs').rglob('*'):
                 if path.is_file() and path.name.lower().startswith(('license', 'copying', 'readme')):

@@ -40,7 +40,7 @@ class AccentSpacingTests(unittest.TestCase):
             self.assertGreaterEqual(ring['bounds'][2] - ring['bounds'][0], 384)
             self.assertGreaterEqual(ring['bounds'][3] - ring['bounds'][1], 384)
 
-    def test_capital_diaereses_are_centered_on_unchanged_ring(self):
+    def test_capital_diamonds_share_unchanged_ring_bottom(self):
         for font in [regular, bold]:
             cmap = font.getBestCmap()
             self.assertEqual(font['glyf'][cmap[0xC5]].yMax, 2912)
@@ -52,7 +52,9 @@ class AccentSpacingTests(unittest.TestCase):
                 dots = [c for c in contours(font, code) if c['bounds'][1] > body_top]
                 self.assertEqual(len(dots), 2)
                 for dot in dots:
-                    self.assertEqual(dot['bounds'][1] + dot['bounds'][3], ring_center_twice)
+                    self.assertEqual(dot['bounds'][1], 2208)
+                    self.assertEqual(len(dot['points']), 4)
+                    self.assertLess(dot['area'], 0, 'Diamond must be filled')
                 self.assertGreaterEqual(min(c['bounds'][1] for c in dots) - body_top, 128)
 
     def test_upper_opening_is_preserved(self):

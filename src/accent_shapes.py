@@ -36,13 +36,13 @@ def drawSwedishAccent(glyph, code, characters, diacritics, draw, bold=False):
         # lower the small ring by half a source pixel.
         data = {'pixels': diacritics[accent_name]['pixels'],
                 'descent': -7 if capital and ring else (-5.5 if ring else -8)}
+        if capital and not ring:
+            data['dotShape'] = 'diamond'
         accent = component('accent', data, 192 if ring else (312 if bold else 192))
-        # Preserve the accepted ring and align each diaeresis center with
-        # its center at y=2560. Dot heights differ by weight; the full A/O
-        # layer and mark outlines stay untouched.
+        # Preserve Å and align the filled diamonds' bottom edges to its ring.
         bounds = accent.boundingBox()
         shift = 0 if not capital else (2912 - bounds[3] if ring else
-                                      2560 - (bounds[1] + bounds[3]) / 2)
+                                      2208 - bounds[1])
         for contour in accent.foreground:
             contour = contour.dup()
             if ring and not contour.isClockwise():

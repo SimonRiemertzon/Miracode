@@ -34,6 +34,10 @@ args = parser.parse_args()
 STROKE = 312 if args.style == "Bold" else 192
 
 characters = json.load(open("./characters.json"))
+characters.extend([
+	{'codepoint': 0x25AA, 'name': 'black_small_square', 'pixels': [[0]]},
+	{'codepoint': 0x25A0, 'name': 'black_square', 'pixels': [[0]]},
+])
 diacritics = json.load(open("./diacritics.json"))
 ligatures = json.load(open("./ligatures.json"))
 # ligatures += generate_continuous_ligatures("./continuous_ligatures.json")
@@ -45,12 +49,12 @@ for character in characters:
 
 def generateFont():
 	miracode = fontforge.font()
-	miracode.fontname = "Miracode-Bold" if args.style == "Bold" else "Miracode"
-	miracode.familyname = "Miracode"
-	miracode.fullname = "Miracode Bold" if args.style == "Bold" else "Miracode"
+	miracode.fontname = "MiracodeText-Bold" if args.style == "Bold" else "MiracodeText-Regular"
+	miracode.familyname = "Miracode Text"
+	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.0"
+	miracode.version = "1.09"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -58,11 +62,16 @@ def generateFont():
 	miracode.upos = -PIXEL_SIZE # Underline position
 	miracode.addLookup("ligatures", "gsub_ligature", (), (("liga",(("dflt",("dflt")),("latn",("dflt")))),))
 	miracode.addLookupSubtable("ligatures", "ligatures-subtable")
+	miracode.addLookup("programming-calt", "gsub_ligature", (), (("calt",(("dflt",("dflt")),("latn",("dflt")))),))
+	miracode.addLookupSubtable("programming-calt", "programming-calt-subtable")
 
 	for character in characters:
 		miracode.createChar(character["codepoint"], character["name"])
 		glyph = miracode[character["name"]]
-		if character["codepoint"] in (0xC5, 0xE5, 0xC4, 0xD6) or (character["codepoint"] == 65 and args.style == "Bold"):
+		if character["codepoint"] in (0x25AA, 0x25A0):
+			side = (448 if character["codepoint"] == 0x25AA else 960) + (120 if STROKE > 192 else 0)
+			drawSquare(glyph.glyphPen(), 640, 1152, side)
+		elif character["codepoint"] in (0xC5, 0xE5, 0xC4, 0xD6) or (character["codepoint"] == 65 and args.style == "Bold"):
 			drawSwedishAccent(glyph, character["codepoint"], charactersByCodepoint,
 			                  diacritics, drawCharacter, bold=args.style == "Bold")
 		else:
@@ -73,6 +82,8 @@ def generateFont():
 			else:
 				drawCharacter(character, glyph, pen)
 
+		if character["codepoint"] == 0x25CF:
+			glyph.transform((1, 0, 0, 1, 0, 128))
 		if "sideBearing" in character:
 			# Fit an explicitly wide design inside one cell without changing
 			# its vertical stroke thickness or the monospace advance.
@@ -120,6 +131,8 @@ def generateFont():
 			continue
 		miracode[ligature["name"]].width = PIXEL_SIZE * len(ligature["sequence"]) * 6
 		lig.addPosSub("ligatures-subtable", tuple(map(lambda codepoint: charactersByCodepoint[codepoint]["name"], ligature["sequence"])))
+		if chr(ligature['sequence'][0]) in '!*+-/<=>':
+			lig.addPosSub("programming-calt-subtable", tuple(charactersByCodepoint[c]["name"] for c in ligature['sequence']))
 
 	print(f"Generated {len(ligatures)} ligatures")
 	print("Generating TTF font...")
@@ -507,6 +520,19 @@ def drawOctagon(pen, x, y, radius):
 		pen.lineTo(x + sideLength * OCTAGON[i][0], y + sideLength * OCTAGON[i][1])
 	pen.closePath()
 
+def drawSquare(pen, x, y, side):
+	half = side / 2
+	pen.moveTo(x - half, y + half)
+	for px, py in [(half, half), (half, -half), (-half, -half)]:
+		pen.lineTo(x + px, y + py)
+	pen.closePath()
+
+def drawDiamond(pen, x, y, radius):
+	pen.moveTo(x, y + radius)
+	for px, py in [(radius, 0), (0, -radius), (-radius, 0)]:
+		pen.lineTo(x + px, y + py)
+	pen.closePath()
+
 def drawHeart(pen, x, y, radius):
 	# Draw clockwise
 	HEART = [
@@ -634,9 +660,12 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 						# separately from stroke expansion and lift it slightly.
 						radius = 160 if STROKE > 192 else 128
 						lift = 160 if STROKE > 192 else 96
-						drawCircle(pen, x, y + lift, radius)
+						drawSquare(pen, x, y + lift, 284 if STROKE > 192 else 226)
 					else:
-						drawCircle(pen, x, y, DOT_RADIUS)
+						if character.get('dotShape') == 'diamond':
+							drawDiamond(pen, x, y, 216 if STROKE > 192 else 176)
+						else:
+							drawCircle(pen, x, y, DOT_RADIUS)
 					continue
 				elif jointAtPoint.get((col, row)) == 0:
 					# No joint or end cap
