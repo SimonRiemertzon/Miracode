@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
@@ -10,7 +11,7 @@ parser.add_argument('--catalog',type=Path,required=True)
 args=parser.parse_args();repo=args.catalog
 target=repo/'src/unpatched-fonts/MiracodeText';target.mkdir(parents=True,exist_ok=True)
 for style,name in [('Regular','Miracode.ttf'),('Bold','Miracode-Bold.ttf')]:
-    shutil.copyfile(ROOT/'dist/v9-source'/name,target/('MiracodeText-'+style+'.ttf'))
+    shutil.copyfile(ROOT/'dist/v10-source'/name,target/('MiracodeText-'+style+'.ttf'))
 shutil.copyfile(ROOT/'LICENSE',target/'LICENSE.txt')
 shutil.copyfile(ROOT/'tools/fix_win_bounds.py',target/'fix_win_bounds.py')
 (target/'fix_win_bounds.py').chmod(0o755)
@@ -20,10 +21,14 @@ shutil.copyfile(ROOT/'COPYING-GENERATOR',target/'COPYING-postprocessor')
 
 Local OFL derivative of [Miracode](https://github.com/IdreesInc/Miracode),
 an angular vector typeface by Idrees Hassan based on Monocraft.
-Version 1.09, local v9 candidate. This is not an official upstream release.
+Version 1.10, local v10 candidate. This is not an official upstream release.
 
-Filled diamonds on Ä/Ö share the unchanged Å-ring bottom. Compact i/j dots
-retain their original height. Source Regular/Bold, complete letter bodies,
+Filled diamonds replace Ä/Ö/ä/ö/i/j dots and matching aliases/word dots.
+Other accents, quotes, commas and punctuation remain unchanged. Capital
+diaereses share the unchanged Å-ring bottom; lowercase
+marks retain their original centers. Filled/hollow diamond bullets are centered
+on the capital body; hollow tips match the unchanged å ring. Source Regular/Bold,
+complete letter bodies,
 monospaced advances, liga/calt programming operators, liga-only word logos,
 centered literal list symbols and the prior accent/dash fixes are included.
 Application numbering conventions remain application behavior.
@@ -31,7 +36,7 @@ Application numbering conventions remain application behavior.
 License: SIL Open Font License 1.1, no Reserved Font Name declaration.
 The generator's GPL-3.0-or-later license is separate.
 
-Exact source: the contributor's local feature/filled-diamonds-bottom-v9 branch
+Exact source: the contributor's local feature/all-diamond-dots-v10 branch
 in the local source checkout. A source archive and checksum accompany the
 review package. Before public submission, publish the source and replace this
 local provenance with an immutable reachable URL. Source maintenance and the
@@ -56,14 +61,21 @@ font files remain OFL-1.1. Future forced-Mono support needs maintainer review.
 AI assistance: OpenAI Codex (GPT-6.1). This candidate is prepared by an AI agent
 and remains subject to human source/publication and Nerd Fonts review.
 ''')
+(target/'README.md').write_text((target/'README.md').read_text()+'\nLocal source commit: '+subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()+' (not yet published).\n')
 path=repo/'bin/scripts/lib/fonts.json';data=json.loads(path.read_text())
-assert not any(f['folderName']=='MiracodeText' for f in data['fonts'])
-entry=dict(unpatchedName='Miracode Text',licenseId='OFL-1.1-no-RFN',RFN=False,version='1.09',patchedName='MiracodeText',folderName='MiracodeText',imagePreviewFont='MiracodeText Nerd Font',imagePreviewFontSource='MiracodeText/MiracodeText-Regular.ttf',linkPreviewFont=False,caskName='miracode-text',repoRelease=False,isMonospaced=True,description='Angular vector Miracode derivative with programming ligatures and bottom-aligned diamond diaereses')
+data['fonts']=[f for f in data['fonts'] if f['folderName']!='MiracodeText']
+entry=dict(unpatchedName='Miracode Text',licenseId='OFL-1.1-no-RFN',RFN=False,version='1.10',patchedName='MiracodeText',folderName='MiracodeText',imagePreviewFont='MiracodeText Nerd Font',imagePreviewFontSource='MiracodeText/MiracodeText-Regular.ttf',linkPreviewFont=False,caskName='miracode-text',repoRelease=False,isMonospaced=True,description='Angular vector Miracode derivative with programming ligatures, diamond dots and centered filled/hollow diamond bullets')
 index=next(i for i,f in enumerate(data['fonts']) if f['folderName'].casefold()>'miracodetext')
 data['fonts'].insert(index,entry);path.write_text(json.dumps(data,indent=2,ensure_ascii=False)+'\n')
 path=repo/'readme.md';text=path.read_text();anchor='| [Monaspice Nerd Font]'
 assert anchor in text
-text=text.replace(anchor,'| [MiracodeText Nerd Font][p-miracodetext]          | [Miracode Text][f-miracodetext]        | 1.09       | YES  |\n'+anchor,1)
-text+='\n[p-miracodetext]:patched-fonts/MiracodeText\n[f-miracodetext]:https://github.com/IdreesInc/Miracode\n'
+row='| [MiracodeText Nerd Font][p-miracodetext]          | [Miracode Text][f-miracodetext]        | 1.10       | YES  |'
+lines=text.splitlines();existing=next((i for i,line in enumerate(lines) if line.startswith('| [MiracodeText Nerd Font]')),None)
+if existing is not None:
+    lines[existing]=row;text='\n'.join(lines)+'\n'
+else:
+    text=text.replace(anchor,row+'\n'+anchor,1)
+if '[p-miracodetext]:' not in text:
+    text+='\n[p-miracodetext]:patched-fonts/MiracodeText\n[f-miracodetext]:https://github.com/IdreesInc/Miracode\n'
 path.write_text(text)
 print(target)

@@ -53,7 +53,7 @@ class GeneratedFontTests(unittest.TestCase):
         self.assertGreater(font['glyf'][cmap[197]].yMax, font['glyf'][cmap[65]].yMax)
 
     def test_list_marker_centers(self):
-        for code in (0x2022, 0x25E6, 0x25AA, 0x25A0, 0x25CF, 0x25CB, 0x25A1):
+        for code in (0x2022, 0x25E6, 0x25AA, 0x25A0, 0x25CF, 0x25CB, 0x25A1, 0x25C6, 0x25C7):
             with self.subTest(codepoint=hex(code)):
                 self.assertIn(code, cmap)
                 glyph = font['glyf'][cmap[code]]

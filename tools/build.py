@@ -111,9 +111,10 @@ def check_patched(base_path, patched_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-only', action='store_true', help='Skip the Nerd Fonts stage')
-    parser.add_argument('--with-bold', action='store_true', help='Include the experimental source-generated Bold')
+    parser.add_argument('--with-bold', action='store_true', help='Include source-generated Bold')
     parser.add_argument('--patcher-archive', type=Path, help='Use a local, checksum-verified FontPatcher.zip')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist/release')
+    parser.add_argument('--punctuation-dots', choices=('original', 'basic', 'extended'), default='original')
     args = parser.parse_args()
     if fontforge.version() != '20230101' or fontTools.__version__ != '4.63.0':
         parser.error('Pinned toolchain required: FontForge 20230101 and fontTools 4.63.0')
@@ -127,7 +128,7 @@ def main():
     source_hash = source.hexdigest()
     environment = dict(os.environ, PYTHONHASHSEED='0', PYTHONUTF8='1', LC_ALL='C', SOURCE_DATE_EPOCH=str(epoch))
     manifest = {'sourceSha256': source_hash, 'sourceDateEpoch': epoch,
-                'fontforge': fontforge.version(), 'fonttools': fontTools.__version__, 'files': []}
+                'fontforge': fontforge.version(), 'fonttools': fontTools.__version__, 'punctuationDots': args.punctuation_dots, 'files': []}
     with tempfile.TemporaryDirectory(prefix='miracode-release-') as temporary:
         stage = Path(temporary)
         shutil.copytree(ROOT / 'src', stage / 'src', ignore=shutil.ignore_patterns('__pycache__'))
@@ -137,7 +138,7 @@ def main():
         styles = ['Regular', 'Bold'] if args.with_bold else ['Regular']
         bases = []
         for style in styles:
-            run([sys.executable, 'miracode.py', '--style', style], cwd=stage / 'src', env=environment)
+            run([sys.executable, 'miracode.py', '--style', style, '--punctuation-dots', args.punctuation_dots], cwd=stage / 'src', env=environment)
             filename = 'Miracode-Bold.ttf' if style == 'Bold' else 'Miracode.ttf'
             base = release / filename
             shutil.copyfile(stage / 'dist' / filename, base)
@@ -153,6 +154,8 @@ def main():
             subprocess.run([sys.executable, str(ROOT / 'tests/check_accent_spacing.py'), *map(str, bases)],
                            env=environment, check=True)
             subprocess.run([sys.executable, str(ROOT / 'tests/check_text_dots.py'), *map(str, bases)],
+                           env=environment, check=True)
+            subprocess.run([sys.executable, str(ROOT / 'tests/check_diamond_dots.py'), '--punctuation-dots', args.punctuation_dots, *map(str, bases)],
                            env=environment, check=True)
             manifest['styles'] = {'Regular': {'strokeUnits': 192},
                                   'Bold': {'strokeUnits': 312, 'experimental': False}}
@@ -208,7 +211,7 @@ def main():
                 manifest['files'].append({'file': str(path.relative_to(release)), 'sha256': sha256(path)})
         (release / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
         (release / 'INSTALL.txt').write_text('Install the TTF files for the current user, then restart applications.\n' +
-            ('This review build includes experimental source-generated Bold; obliques remain a separate proposal.\n'
+            ('This local release includes source-generated Bold; linked obliques are in the four-face package.\n'
              if args.with_bold else 'This source build contains Regular only. Additional styles are a separate proposal.\n'))
         archive = release / 'Miracode-fonts.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as package:

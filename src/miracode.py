@@ -30,8 +30,11 @@ SQRT_TWO = math.sqrt(2)
 parser = argparse.ArgumentParser(description="Generate Miracode from its pixel source")
 parser.add_argument("--style", choices=("Regular", "Bold"), default="Regular")
 parser.add_argument("--test", action="store_true")
+parser.add_argument("--punctuation-dots", choices=("original", "basic", "extended"), default="original")
 args = parser.parse_args()
 STROKE = 312 if args.style == "Bold" else 192
+PUNCTUATION_DIAMONDS = set(map(ord, '.:…' if args.punctuation_dots == 'basic' else
+                             '.:;!?…·¡¿' if args.punctuation_dots == 'extended' else ''))
 
 characters = json.load(open("./characters.json"))
 characters.extend([
@@ -54,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.09"
+	miracode.version = "1.10"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -68,7 +71,14 @@ def generateFont():
 	for character in characters:
 		miracode.createChar(character["codepoint"], character["name"])
 		glyph = miracode[character["name"]]
-		if character["codepoint"] in (0x25AA, 0x25A0):
+		if character["codepoint"] in (0x2022, 0x25E6, 0x25C6, 0x25C7):
+			# Explicit vector list markers, centered on the capital body.
+			# The hollow marker follows the unchanged å ring's chamfered tips.
+			if character["codepoint"] in (0x25E6, 0x25C7):
+				drawDiamondRing(glyph.glyphPen(), 640, 1152, 192 if STROKE > 192 else 224)
+			else:
+				drawDiamond(glyph.glyphPen(), 640, 1152, 336 if STROKE > 192 else 288)
+		elif character["codepoint"] in (0x25AA, 0x25A0):
 			side = (448 if character["codepoint"] == 0x25AA else 960) + (120 if STROKE > 192 else 0)
 			drawSquare(glyph.glyphPen(), 640, 1152, side)
 		elif character["codepoint"] in (0xC5, 0xE5, 0xC4, 0xD6) or (character["codepoint"] == 65 and args.style == "Bold"):
@@ -104,6 +114,8 @@ def generateFont():
 	# miracode.generate(outputDir + "Miracode-no-ligatures.ttf")
 
 	for ligature in ligatures:
+		if any(code in PUNCTUATION_DIAMONDS for code in ligature['sequence']):
+			ligature['dotShape'] = 'diamond'
 		lig = None
 		if ligature.get("pixels"):
 			# Basic ligature
@@ -119,7 +131,7 @@ def generateFont():
 			xOffset = 0
 			for character in chain:
 				if character.get("pixels"):
-					xOffset = drawCharacter(character, lig, pen, xOffset)
+					xOffset = drawCharacter({**character, 'dotShape': ligature.get('dotShape')}, lig, pen, xOffset)
 				elif character.get("reference"):
 					linkedCharacter = charactersByCodepoint[character["reference"]]
 					xOffset = drawCharacter(linkedCharacter, lig, pen, xOffset)
@@ -533,6 +545,20 @@ def drawDiamond(pen, x, y, radius):
 		pen.lineTo(x + px, y + py)
 	pen.closePath()
 
+def drawDiamondRing(pen, x, y, inner):
+	# Same outer geometry as å's ring: 704 units wide, 80-unit flat tips.
+	outer = [(-40, 352), (40, 352), (352, 40), (352, -40),
+	         (40, -352), (-40, -352), (-352, -40), (-352, 40)]
+	pen.moveTo(x + outer[0][0], y + outer[0][1])
+	for px, py in outer[1:]:
+		pen.lineTo(x + px, y + py)
+	pen.closePath()
+	# Opposite winding makes an actual transparent counter, never a white fill.
+	pen.moveTo(x, y + inner)
+	for px, py in [(-inner, 0), (0, -inner), (inner, 0)]:
+		pen.lineTo(x + px, y + py)
+	pen.closePath()
+
 def drawHeart(pen, x, y, radius):
 	# Draw clockwise
 	HEART = [
@@ -658,11 +684,12 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 						# Text-size i/j dots need an open gap even in 10px Bold.
 						# Keep the source stem and baseline; balance dot area
 						# separately from stroke expansion and lift it slightly.
-						radius = 160 if STROKE > 192 else 128
 						lift = 160 if STROKE > 192 else 96
-						drawSquare(pen, x, y + lift, 284 if STROKE > 192 else 226)
+						drawDiamond(pen, x, y + lift, 164 if STROKE > 192 else 144)
 					else:
-						if character.get('dotShape') == 'diamond':
+						# Preserve every other accent, quote and comma. Optional
+						# punctuation studies select explicit codepoints only.
+						if character.get('dotShape') == 'diamond' or character.get('codepoint') in ({0xE4, 0xF6} | PUNCTUATION_DIAMONDS):
 							drawDiamond(pen, x, y, 216 if STROKE > 192 else 176)
 						else:
 							drawCircle(pen, x, y, DOT_RADIUS)
