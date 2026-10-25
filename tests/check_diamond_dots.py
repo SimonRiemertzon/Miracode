@@ -22,7 +22,7 @@ def diamond(p):
     return len(p)==4 and all(f&1 for x,y,f in p) and { (x,y) for x,y,f in p } == {(x0,(y0+y1)/2),((x0+x1)/2,y1),(x1,(y0+y1)/2),((x0+x1)/2,y0)}
 
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--punctuation-dots',choices=('original','basic','extended'),default='original')
+parser.add_argument('--punctuation-dots',choices=('original','basic','extended'),default='extended')
 parser.add_argument('fonts',nargs='+')
 args=parser.parse_args()
 selected=set('.:…' if args.punctuation_dots=='basic' else '.:;!?…·¡¿' if args.punctuation_dots=='extended' else '')

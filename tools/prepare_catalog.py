@@ -11,7 +11,7 @@ parser.add_argument('--catalog',type=Path,required=True)
 args=parser.parse_args();repo=args.catalog
 target=repo/'src/unpatched-fonts/MiracodeText';target.mkdir(parents=True,exist_ok=True)
 for style,name in [('Regular','Miracode.ttf'),('Bold','Miracode-Bold.ttf')]:
-    shutil.copyfile(ROOT/'dist/v10-source'/name,target/('MiracodeText-'+style+'.ttf'))
+    shutil.copyfile(ROOT/'dist/v11-source'/name,target/('MiracodeText-'+style+'.ttf'))
 shutil.copyfile(ROOT/'LICENSE',target/'LICENSE.txt')
 shutil.copyfile(ROOT/'tools/fix_win_bounds.py',target/'fix_win_bounds.py')
 (target/'fix_win_bounds.py').chmod(0o755)
@@ -21,10 +21,12 @@ shutil.copyfile(ROOT/'COPYING-GENERATOR',target/'COPYING-postprocessor')
 
 Local OFL derivative of [Miracode](https://github.com/IdreesInc/Miracode),
 an angular vector typeface by Idrees Hassan based on Monocraft.
-Version 1.10, local v10 candidate. This is not an official upstream release.
+Version 1.11, local v11 candidate. This is not an official upstream release.
 
 Filled diamonds replace Ä/Ö/ä/ö/i/j dots and matching aliases/word dots.
-Other accents, quotes, commas and punctuation remain unchanged. Capital
+Punctuation C (. : ; ! ? … · ¡ ¿) also uses diamond dots. Quotes, commas
+and all other accents remain unchanged. Unordered lists in the comparison
+cycle ◆ ◇ ● ○ ■ □, with parent paths and centered shapes. Capital
 diaereses share the unchanged Å-ring bottom; lowercase
 marks retain their original centers. Filled/hollow diamond bullets are centered
 on the capital body; hollow tips match the unchanged å ring. Source Regular/Bold,
@@ -36,7 +38,7 @@ Application numbering conventions remain application behavior.
 License: SIL Open Font License 1.1, no Reserved Font Name declaration.
 The generator's GPL-3.0-or-later license is separate.
 
-Exact source: the contributor's local feature/all-diamond-dots-v10 branch
+Exact source: the contributor's local feature/diamond-punctuation-six-level-v11 branch
 in the local source checkout. A source archive and checksum accompany the
 review package. Before public submission, publish the source and replace this
 local provenance with an immutable reachable URL. Source maintenance and the
@@ -64,12 +66,12 @@ and remains subject to human source/publication and Nerd Fonts review.
 (target/'README.md').write_text((target/'README.md').read_text()+'\nLocal source commit: '+subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()+' (not yet published).\n')
 path=repo/'bin/scripts/lib/fonts.json';data=json.loads(path.read_text())
 data['fonts']=[f for f in data['fonts'] if f['folderName']!='MiracodeText']
-entry=dict(unpatchedName='Miracode Text',licenseId='OFL-1.1-no-RFN',RFN=False,version='1.10',patchedName='MiracodeText',folderName='MiracodeText',imagePreviewFont='MiracodeText Nerd Font',imagePreviewFontSource='MiracodeText/MiracodeText-Regular.ttf',linkPreviewFont=False,caskName='miracode-text',repoRelease=False,isMonospaced=True,description='Angular vector Miracode derivative with programming ligatures, diamond dots and centered filled/hollow diamond bullets')
+entry=dict(unpatchedName='Miracode Text',licenseId='OFL-1.1-no-RFN',RFN=False,version='1.11',patchedName='MiracodeText',folderName='MiracodeText',imagePreviewFont='MiracodeText Nerd Font',imagePreviewFontSource='MiracodeText/MiracodeText-Regular.ttf',linkPreviewFont=False,caskName='miracode-text',repoRelease=False,isMonospaced=True,description='Angular vector Miracode derivative with programming ligatures, diamond letter/punctuation dots and centered six-shape list symbols')
 index=next(i for i,f in enumerate(data['fonts']) if f['folderName'].casefold()>'miracodetext')
 data['fonts'].insert(index,entry);path.write_text(json.dumps(data,indent=2,ensure_ascii=False)+'\n')
 path=repo/'readme.md';text=path.read_text();anchor='| [Monaspice Nerd Font]'
 assert anchor in text
-row='| [MiracodeText Nerd Font][p-miracodetext]          | [Miracode Text][f-miracodetext]        | 1.10       | YES  |'
+row='| [MiracodeText Nerd Font][p-miracodetext]          | [Miracode Text][f-miracodetext]        | 1.11       | YES  |'
 lines=text.splitlines();existing=next((i for i,line in enumerate(lines) if line.startswith('| [MiracodeText Nerd Font]')),None)
 if existing is not None:
     lines[existing]=row;text='\n'.join(lines)+'\n'

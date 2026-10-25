@@ -30,7 +30,7 @@ SQRT_TWO = math.sqrt(2)
 parser = argparse.ArgumentParser(description="Generate Miracode from its pixel source")
 parser.add_argument("--style", choices=("Regular", "Bold"), default="Regular")
 parser.add_argument("--test", action="store_true")
-parser.add_argument("--punctuation-dots", choices=("original", "basic", "extended"), default="original")
+parser.add_argument("--punctuation-dots", choices=("original", "basic", "extended"), default="extended")
 args = parser.parse_args()
 STROKE = 312 if args.style == "Bold" else 192
 PUNCTUATION_DIAMONDS = set(map(ord, '.:…' if args.punctuation_dots == 'basic' else
@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.10"
+	miracode.version = "1.11"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE

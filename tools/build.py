@@ -114,7 +114,7 @@ def main():
     parser.add_argument('--with-bold', action='store_true', help='Include source-generated Bold')
     parser.add_argument('--patcher-archive', type=Path, help='Use a local, checksum-verified FontPatcher.zip')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist/release')
-    parser.add_argument('--punctuation-dots', choices=('original', 'basic', 'extended'), default='original')
+    parser.add_argument('--punctuation-dots', choices=('original', 'basic', 'extended'), default='extended')
     args = parser.parse_args()
     if fontforge.version() != '20230101' or fontTools.__version__ != '4.63.0':
         parser.error('Pinned toolchain required: FontForge 20230101 and fontTools 4.63.0')
