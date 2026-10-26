@@ -1,4 +1,17 @@
-# Miracode
+# Miracode Text 1.16 — local contribution source
+
+This checkout prepares the approved v16 **Miracode Text** derivative for Nerd
+Fonts review. Its font design is accepted locally; public naming, maintenance
+and source publication are still pending. See [CONTRIBUTION-v16.md](CONTRIBUTION-v16.md)
+for the reproducible four-face unpatched build and separate font/generator licenses.
+The optional Zen list stylesheet is separate from this contribution.
+
+The upstream Miracode description below is retained as historical background.
+Its official release links do not distribute this derivative. Older versioned
+tools and release notes also remain as historical evidence; use
+`tools/build_contribution.py` for this candidate.
+
+# Miracode (upstream background)
 
 [![Github all releases](https://img.shields.io/github/downloads/IdreesInc/Miracode/total.svg)](https://GitHub.com/IdreesInc/Miracode/releases/)
 ![](https://img.shields.io/github/license/IdreesInc/Miracode)
