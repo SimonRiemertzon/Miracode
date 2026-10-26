@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.11"
+	miracode.version = "1.12"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -71,7 +71,13 @@ def generateFont():
 	for character in characters:
 		miracode.createChar(character["codepoint"], character["name"])
 		glyph = miracode[character["name"]]
-		if character["codepoint"] in (0x2022, 0x25E6, 0x25C6, 0x25C7):
+		if character["codepoint"] == 0x2026 and 0x2026 in PUNCTUATION_DIAMONDS:
+			# Three distinct, stronger diamonds inside the single-cell advance.
+			# The old seven-pixel source overhung the following code cell.
+			pen = glyph.glyphPen()
+			for center in (256, 768, 1280):
+				drawDiamond(pen, center, 384, 232 if STROKE > 192 else 208)
+		elif character["codepoint"] in (0x2022, 0x25E6, 0x25C6, 0x25C7):
 			# Explicit vector list markers, centered on the capital body.
 			# The hollow marker follows the unchanged å ring's chamfered tips.
 			if character["codepoint"] in (0x25E6, 0x25C7):
@@ -690,7 +696,8 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 						# Preserve every other accent, quote and comma. Optional
 						# punctuation studies select explicit codepoints only.
 						if character.get('dotShape') == 'diamond' or character.get('codepoint') in ({0xE4, 0xF6} | PUNCTUATION_DIAMONDS):
-							drawDiamond(pen, x, y, 216 if STROKE > 192 else 176)
+							radius = (256 if STROKE > 192 else 216) if character.get('codepoint') == 46 else (216 if STROKE > 192 else 176)
+							drawDiamond(pen, x, y, radius)
 						else:
 							drawCircle(pen, x, y, DOT_RADIUS)
 					continue
