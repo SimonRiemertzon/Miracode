@@ -26,7 +26,7 @@ for path in sys.argv[1:]:
     for char, count in [('.', 1), ('·', 1), (':', 2), (';', 1), ('!', 1), ('?', 1), ('¡', 1), ('¿', 1)]:
         dots = [p for p in parts(font, ord(char)) if diamond(p)]
         assert len(dots) == count, (char, len(dots))
-        expected_radius = (320 if bold else 304) if char in '!?¡¿' else radius
+        expected_radius = (144 if bold else 128) if char in '!?' else (320 if bold else 304) if char in '¡¿' else radius
         assert all(bounds(p)[2] - bounds(p)[0] == expected_radius * 2 for p in dots), char
     for code in (0x2022, 0x25C6, 0x25E6, 0x25C7):
         shapes = parts(font, code)

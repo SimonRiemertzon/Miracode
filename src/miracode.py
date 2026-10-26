@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.15"
+	miracode.version = "1.16"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -113,19 +113,16 @@ def generateFont():
 			baseline = 288 - (STROKE - 192) / 2
 			glyph.transform((1, 0, 0, 1, 0, baseline - glyph.boundingBox()[1]))
 		if character['codepoint'] in (33, 63) and character['codepoint'] in PUNCTUATION_DIAMONDS:
-			# Keep the complete source body and large diamond dot unscaled.
-			# Align the dot to the text bottom and translate the whole body upward.
-			# This deliberately uses extra height rather than shortening the shape.
+			# Keep the complete source body at its original capital height.
+			# A smaller diamond leaves room for clearance at an aligned text bottom.
 			layer = glyph.foreground
 			baseline = 288 - (STROKE - 192) / 2
 			dot = min(layer, key=lambda c: c.boundingBox()[3])
-			body = max(layer, key=lambda c: c.boundingBox()[3])
 			dot_shift = baseline - dot.boundingBox()[1]
-			body_shift = dot.boundingBox()[3] + dot_shift + 256 - body.boundingBox()[1]
 			for contour in layer:
-				shift = body_shift if contour.boundingBox()[3] > 1000 else dot_shift
-				for point in contour:
-					point.y += shift
+				if contour.boundingBox()[3] < 1000:
+					for point in contour:
+						point.y += dot_shift
 			glyph.foreground = layer
 			glyph.round()
 		glyph.width = PIXEL_SIZE * 6
@@ -721,7 +718,10 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 							if character.get('largePunctuationDots'):
 								radius = character['largePunctuationDots']
 							elif code in PUNCTUATION_DIAMONDS:
-								radius = (320 if STROKE > 192 else 304) if code in map(ord, '!?¡¿') else (384 if STROKE > 192 else 352)
+								if code in (33, 63):
+									radius = 144 if STROKE > 192 else 128
+								else:
+									radius = (320 if STROKE > 192 else 304) if code in map(ord, '¡¿') else (384 if STROKE > 192 else 352)
 							else:
 								radius = 216 if STROKE > 192 else 176
 							drawDiamond(pen, x, y, radius)
