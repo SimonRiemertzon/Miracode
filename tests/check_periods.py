@@ -14,7 +14,8 @@ for path in sys.argv[1:]:
             assert len(contour)==4
             xs,ys=zip(*contour)
             assert max(xs)-min(xs)==max(ys)-min(ys)==radius*2
-            assert min(ys)+max(ys)==768
+            expected_center = (228 if bold else 288) + radius if code == 46 else 384
+            assert min(ys)+max(ys)==2 * expected_center
             boxes.append((min(xs),max(xs)))
         assert font['hmtx'][cmap[code]][0]==1536
         if code==0x2026:

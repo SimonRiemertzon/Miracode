@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.13"
+	miracode.version = "1.14"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -107,6 +107,20 @@ def generateFont():
 			xMin, _, xMax, _ = glyph.boundingBox()
 			scale = (PIXEL_SIZE * 6 - 2 * bearing) / (xMax - xMin)
 			glyph.transform((scale, 0, 0, 1, bearing - xMin * scale, 0))
+			glyph.round()
+		if character['codepoint'] == 46 and 46 in PUNCTUATION_DIAMONDS:
+			# Align the enlarged diamond's bottom with the text's stroke bottom.
+			baseline = 288 - (STROKE - 192) / 2
+			glyph.transform((1, 0, 0, 1, 0, baseline - glyph.boundingBox()[1]))
+		if character['codepoint'] in (33, 63) and character['codepoint'] in PUNCTUATION_DIAMONDS:
+			# Shorten only the lower body, leaving its cap top and large dot intact.
+			# Moving the terminal as a unit preserves its stroke width and end cap.
+			layer = glyph.foreground
+			for contour in layer:
+				if contour.boundingBox()[3] > 1000:
+					for point in contour:
+						point.y += min(256, max(0, (1536 - point.y) * 2 / 3))
+			glyph.foreground = layer
 			glyph.round()
 		glyph.width = PIXEL_SIZE * 6
 	print(f"Generated {len(characters)} characters")
