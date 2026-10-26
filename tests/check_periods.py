@@ -4,7 +4,7 @@ from fontTools.ttLib import TTFont
 
 for path in sys.argv[1:]:
     font=TTFont(path);bold=font['OS/2'].usWeightClass==700;cmap=font.getBestCmap()
-    for code,count,radius in [(46,1,256 if bold else 216),(0x2026,3,232 if bold else 208)]:
+    for code,count,radius in [(46,1,384 if bold else 352),(0x2026,3,248 if bold else 240)]:
         glyph=font['glyf'][cmap[code]]
         points,ends,flags=glyph.getCoordinates(font['glyf'])
         assert len(ends)==count and all(flag&1 for flag in flags)

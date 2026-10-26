@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.12"
+	miracode.version = "1.13"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -76,14 +76,14 @@ def generateFont():
 			# The old seven-pixel source overhung the following code cell.
 			pen = glyph.glyphPen()
 			for center in (256, 768, 1280):
-				drawDiamond(pen, center, 384, 232 if STROKE > 192 else 208)
+				drawDiamond(pen, center, 384, 248 if STROKE > 192 else 240)
 		elif character["codepoint"] in (0x2022, 0x25E6, 0x25C6, 0x25C7):
 			# Explicit vector list markers, centered on the capital body.
-			# The hollow marker follows the unchanged å ring's chamfered tips.
+			# Both hollow and filled list diamonds now have sharp tips.
 			if character["codepoint"] in (0x25E6, 0x25C7):
-				drawDiamondRing(glyph.glyphPen(), 640, 1152, 192 if STROKE > 192 else 224)
+				drawDiamondRing(glyph.glyphPen(), 640, 1152, 320 if STROKE > 192 else 352)
 			else:
-				drawDiamond(glyph.glyphPen(), 640, 1152, 336 if STROKE > 192 else 288)
+				drawDiamond(glyph.glyphPen(), 640, 1152, 528 if STROKE > 192 else 480)
 		elif character["codepoint"] in (0x25AA, 0x25A0):
 			side = (448 if character["codepoint"] == 0x25AA else 960) + (120 if STROKE > 192 else 0)
 			drawSquare(glyph.glyphPen(), 640, 1152, side)
@@ -122,6 +122,7 @@ def generateFont():
 	for ligature in ligatures:
 		if any(code in PUNCTUATION_DIAMONDS for code in ligature['sequence']):
 			ligature['dotShape'] = 'diamond'
+			ligature['largePunctuationDots'] = (320 if STROKE > 192 else 304) if any(code in map(ord, '!?¡¿') for code in ligature['sequence']) else (384 if STROKE > 192 else 352)
 		lig = None
 		if ligature.get("pixels"):
 			# Basic ligature
@@ -137,10 +138,10 @@ def generateFont():
 			xOffset = 0
 			for character in chain:
 				if character.get("pixels"):
-					xOffset = drawCharacter({**character, 'dotShape': ligature.get('dotShape')}, lig, pen, xOffset)
+					xOffset = drawCharacter({**character, 'dotShape': ligature.get('dotShape'), 'largePunctuationDots': ligature.get('largePunctuationDots')}, lig, pen, xOffset)
 				elif character.get("reference"):
 					linkedCharacter = charactersByCodepoint[character["reference"]]
-					xOffset = drawCharacter(linkedCharacter, lig, pen, xOffset)
+					xOffset = drawCharacter({**linkedCharacter, 'largePunctuationDots': ligature.get('largePunctuationDots')}, lig, pen, xOffset)
 				else:
 					print(f"Unexpected character in ligature {ligature['name']}: {character}")
 				xOffset += PIXEL_SIZE
@@ -552,9 +553,9 @@ def drawDiamond(pen, x, y, radius):
 	pen.closePath()
 
 def drawDiamondRing(pen, x, y, inner):
-	# Same outer geometry as å's ring: 704 units wide, 80-unit flat tips.
-	outer = [(-40, 352), (40, 352), (352, 40), (352, -40),
-	         (40, -352), (-40, -352), (-352, -40), (-352, 40)]
+	# Larger, sharp diamond tips, independent of the unchanged letter rings.
+	radius = 576 if STROKE > 192 else 544
+	outer = [(0, radius), (radius, 0), (0, -radius), (-radius, 0)]
 	pen.moveTo(x + outer[0][0], y + outer[0][1])
 	for px, py in outer[1:]:
 		pen.lineTo(x + px, y + py)
@@ -696,7 +697,13 @@ def drawCharacter(character, glyph, pen, xOffset = 0, stroke = None):
 						# Preserve every other accent, quote and comma. Optional
 						# punctuation studies select explicit codepoints only.
 						if character.get('dotShape') == 'diamond' or character.get('codepoint') in ({0xE4, 0xF6} | PUNCTUATION_DIAMONDS):
-							radius = (256 if STROKE > 192 else 216) if character.get('codepoint') == 46 else (216 if STROKE > 192 else 176)
+							code = character.get('codepoint')
+							if character.get('largePunctuationDots'):
+								radius = character['largePunctuationDots']
+							elif code in PUNCTUATION_DIAMONDS:
+								radius = (320 if STROKE > 192 else 304) if code in map(ord, '!?¡¿') else (384 if STROKE > 192 else 352)
+							else:
+								radius = 216 if STROKE > 192 else 176
 							drawDiamond(pen, x, y, radius)
 						else:
 							drawCircle(pen, x, y, DOT_RADIUS)

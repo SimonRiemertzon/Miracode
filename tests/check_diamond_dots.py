@@ -42,7 +42,7 @@ for path in args.fonts:
         assert len(parts(font,code))==1 and diamond(parts(font,code)[0])
     for code in (0x25E6,0x25C7):
         contours=parts(font,code)
-        assert sorted(map(len,contours))==[4,8]
+        assert sorted(map(len,contours))==[4,4]
         def area(p):return sum(x*v-u*y for (x,y,f),(u,v,g) in zip(p,p[1:]+p[:1]))
         assert area(contours[0])*area(contours[1])<0,'Hollow counter must have opposite winding'
     print(f'{path}: PASS, requested letter dots are vector diamonds; punctuation policy={args.punctuation_dots}; hollow bullets have real counters')

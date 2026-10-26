@@ -160,6 +160,8 @@ def main():
             if args.punctuation_dots == 'extended':
                 subprocess.run([sys.executable, str(ROOT / 'tests/check_periods.py'), *map(str, bases)],
                                env=environment, check=True)
+                subprocess.run([sys.executable, str(ROOT / 'tests/check_large_diamonds.py'), *map(str, bases)],
+                               env=environment, check=True)
             manifest['styles'] = {'Regular': {'strokeUnits': 192},
                                   'Bold': {'strokeUnits': 312, 'experimental': False}}
         shutil.copyfile(ROOT / 'LICENSE', release / 'LICENSE.txt')
