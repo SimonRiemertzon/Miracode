@@ -57,7 +57,7 @@ def generateFont():
 	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
-	miracode.version = "1.14"
+	miracode.version = "1.15"
 	miracode.weight = args.style
 	miracode.ascent = PIXEL_SIZE * 8
 	miracode.descent = PIXEL_SIZE
@@ -113,13 +113,19 @@ def generateFont():
 			baseline = 288 - (STROKE - 192) / 2
 			glyph.transform((1, 0, 0, 1, 0, baseline - glyph.boundingBox()[1]))
 		if character['codepoint'] in (33, 63) and character['codepoint'] in PUNCTUATION_DIAMONDS:
-			# Shorten only the lower body, leaving its cap top and large dot intact.
-			# Moving the terminal as a unit preserves its stroke width and end cap.
+			# Keep the complete source body and large diamond dot unscaled.
+			# Align the dot to the text bottom and translate the whole body upward.
+			# This deliberately uses extra height rather than shortening the shape.
 			layer = glyph.foreground
+			baseline = 288 - (STROKE - 192) / 2
+			dot = min(layer, key=lambda c: c.boundingBox()[3])
+			body = max(layer, key=lambda c: c.boundingBox()[3])
+			dot_shift = baseline - dot.boundingBox()[1]
+			body_shift = dot.boundingBox()[3] + dot_shift + 256 - body.boundingBox()[1]
 			for contour in layer:
-				if contour.boundingBox()[3] > 1000:
-					for point in contour:
-						point.y += min(256, max(0, (1536 - point.y) * 2 / 3))
+				shift = body_shift if contour.boundingBox()[3] > 1000 else dot_shift
+				for point in contour:
+					point.y += shift
 			glyph.foreground = layer
 			glyph.round()
 		glyph.width = PIXEL_SIZE * 6
