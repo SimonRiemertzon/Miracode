@@ -1,4 +1,4 @@
-"""Build the four unpatched Miracode Text 1.16 contribution faces.
+"""Build the four unpatched Miracode Diamond 1.16 contribution faces.
 
 SPDX-License-Identifier: GPL-3.0-or-later
 Uses the accepted v16 source and the installed package's 12-degree transform.
@@ -55,11 +55,11 @@ def build(output):
         font['hhea'].caretSlopeRise = 1000 if oblique else 1
         font['hhea'].caretSlopeRun = round(shear * 1000) if oblique else 0
         display = 'Bold Oblique' if style == 'BoldOblique' else style
-        prefix = 'MiracodeText-' + style
-        names = {1: 'Miracode Text', 2: display,
+        prefix = 'MiracodeDiamond-' + style
+        names = {1: 'Miracode Diamond', 2: display,
                  3: prefix + ';1.16;' + base_manifest['sourceSha256'][:12],
-                 4: 'Miracode Text ' + display, 5: 'Version 1.16; local derivative',
-                 6: prefix, 16: 'Miracode Text', 17: display}
+                 4: 'Miracode Diamond ' + display, 5: 'Version 1.16; local derivative',
+                 6: prefix, 16: 'Miracode Diamond', 17: display}
         for name_id in (18, 21, 22):
             font['name'].removeNames(nameID=name_id)
         for name_id, value in names.items():
@@ -71,17 +71,20 @@ def build(output):
         font.save(target)
         records.append({'file': target.name, 'style': display,
                         'sha256': hashlib.sha256(target.read_bytes()).hexdigest()})
-    manifest = {'family': 'Miracode Text', 'version': '1.16',
+    manifest = {'family': 'Miracode Diamond', 'version': '1.16',
                 'status': 'Local contribution candidate; publication pending',
                 'sourceSha256': base_manifest['sourceSha256'],
                 'sourceDateEpoch': 1707523200, 'fontforge': base_manifest['fontforge'],
                 'fonttools': base_manifest['fonttools'], 'unpatched': True,
                 'obliqueDegrees': 12, 'files': records}
     (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    subprocess.run([sys.executable, str(ROOT / 'tests/check_shaping.py'),
+                    *(str(output / entry['file']) for entry in records),
+                    '--output', str(output / 'shaping-verification.json')], check=True)
     print(json.dumps(manifest, indent=2))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=ROOT / 'dist/v16-contribution')
+    parser.add_argument('--output', type=Path, default=ROOT / 'dist/diamond-source')
     build(parser.parse_args().output.resolve())

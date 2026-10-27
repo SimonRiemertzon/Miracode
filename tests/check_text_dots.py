@@ -1,4 +1,4 @@
-"""Word ligatures retain ordinary i dots, with room for 10px text rendering.
+"""Ordinary i dots remain diamonds; only the Miracode wordmark has a heart.
 
 SPDX-License-Identifier: GPL-3.0-or-later
 """
@@ -30,7 +30,7 @@ def check(path):
         gap = min(y for x,y,flag in dot) - stem_top
         if gap < 350:
             failures.append(f'{character}: dot/stem gap {gap} is too small for 10px text')
-    for word in ('miracode', 'miranda'):
+    for word in ('miranda',):
         if word not in font.getGlyphOrder():
             continue
         shift = font['hmtx'].metrics[font.getBestCmap()[ord('M')]][0]
@@ -43,7 +43,14 @@ def check(path):
             failures.append(f'{word}: i dot differs from standalone i (notched word-logo dot)')
     if failures:
         raise AssertionError('; '.join(failures))
-    print(f'{path}: PASS, word-ligature i dots match ordinary i')
+    heart = [p for p in contours(font, 'miracode')
+             if min(y for x,y,f in p) > 1600 and min(x for x,y,f in p) > shift
+             and max(x for x,y,f in p) < shift*2]
+    if len(heart) != 1 or len(heart[0]) != 8:
+        failures.append('Miracode: expected the original detached eight-point heart')
+    if failures:
+        raise AssertionError('; '.join(failures))
+    print(f'{path}: PASS, ordinary/alias/Miranda dots preserved; Miracode heart present')
 
 if __name__ == '__main__':
     for argument in sys.argv[1:]:

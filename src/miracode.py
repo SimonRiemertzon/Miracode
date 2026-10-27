@@ -52,9 +52,9 @@ for character in characters:
 
 def generateFont():
 	miracode = fontforge.font()
-	miracode.fontname = "MiracodeText-Bold" if args.style == "Bold" else "MiracodeText-Regular"
-	miracode.familyname = "Miracode Text"
-	miracode.fullname = "Miracode Text Bold" if args.style == "Bold" else "Miracode Text Regular"
+	miracode.fontname = "MiracodeDiamond-Bold" if args.style == "Bold" else "MiracodeDiamond-Regular"
+	miracode.familyname = "Miracode Diamond"
+	miracode.fullname = "Miracode Diamond Bold" if args.style == "Bold" else "Miracode Diamond Regular"
 	miracode.copyright = "Idrees Hassan, https://github.com/IdreesInc/Miracode"
 	miracode.encoding = "UnicodeFull"
 	miracode.version = "1.16"

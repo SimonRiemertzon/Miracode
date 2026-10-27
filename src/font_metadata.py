@@ -4,6 +4,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 """
 import math
 from fontTools.ttLib import TTFont
+from wordmark import restrict_wordmark
 
 def finalizeFont(path, bold=False):
     font = TTFont(path, recalcTimestamp=False)
@@ -23,5 +24,6 @@ def finalizeFont(path, bold=False):
     os2.panose.bProportion = 9  # Monospaced
     # Ligatures span multiple cells; this does not make the text proportional.
     font['post'].isFixedPitch = 1
+    restrict_wordmark(font)
     font.save(path)
     font.close()

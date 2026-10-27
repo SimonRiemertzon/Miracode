@@ -20,12 +20,13 @@ def outline(font, name):
     return pen.value
 
 
-def compare_text(source, other, expected_fixed_pitch=1):
+def compare_text(source, other, expected_fixed_pitch=1, approved_baseline=False):
     old, new = source.getBestCmap(), other.getBestCmap()
     assert set(old).issubset(new), 'missing source codepoints'
     assert all(old[code] == new[code] for code in old), 'renamed source codepoints'
     for name in source.getGlyphOrder():
-        assert outline(source, name) == outline(other, name), ('outline', name)
+        if not (approved_baseline and name == 'miracode'):
+            assert outline(source, name) == outline(other, name), ('outline', name)
         assert source['hmtx'][name][0] == other['hmtx'][name][0], ('advance', name)
     # Stock FontForge patching canonicalizes the source's dflt script to DFLT.
     # Compare the complete decoded GSUB, allowing only that known tag spelling.
@@ -35,7 +36,8 @@ def compare_text(source, other, expected_fixed_pitch=1):
         font['GSUB'].toXML(XMLWriter(stream), font)
         layouts.append(stream.getvalue().replace('<ScriptTag value="dflt"/>',
                                                  '<ScriptTag value="DFLT"/>'))
-    assert layouts[0] == layouts[1], 'GSUB structure changed'
+    if not approved_baseline:
+        assert layouts[0] == layouts[1], 'GSUB structure changed'
     assert source['hhea'].ascent == other['hhea'].ascent
     assert source['hhea'].descent == other['hhea'].descent
     assert {other['hmtx'][new[code]][0] for code in range(32, 127)} == {1536}
@@ -44,10 +46,13 @@ def compare_text(source, other, expected_fixed_pitch=1):
     assert source['OS/2'].usWeightClass == other['OS/2'].usWeightClass
     assert source['post'].italicAngle == other['post'].italicAngle
     return {'sourceGlyphs': len(source.getGlyphOrder()),
-            'sourceCodepoints': len(old), 'allTextOutlinesExact': True,
+            'sourceCodepoints': len(old), 'allTextOutlinesExact': not approved_baseline,
+            'allOtherApprovedTextOutlinesExact': approved_baseline,
+            'permittedApprovedOutlineChange': 'miracode' if approved_baseline else None,
             'allTextAdvancesExact': True,
             'gsubByteIdentical': source.getTableData('GSUB') == other.getTableData('GSUB'),
-            'gsubStructureExactExceptDefaultScriptCase': True,
+            'gsubStructureExactExceptDefaultScriptCase': layouts[0] == layouts[1],
+            'approvedBaselineHeartAndContextChangeAllowed': approved_baseline,
             'typographicSpacingExact': True,
             'postIsFixedPitch': other['post'].isFixedPitch,
             'panoseProportion': other['OS/2'].panose.bProportion}
@@ -70,16 +75,18 @@ def main():
         source = TTFont(path)
         approved_style = entry['style'].replace('Oblique', 'Italic')
         old = next(item for item in approved['files'] if item['style'] == approved_style)
-        proof = compare_text(source, TTFont(args.approved / old['file']))
+        baseline = TTFont(args.approved / old['file'])
+        proof = compare_text(source, baseline, approved_baseline=True)
+        assert outline(source, 'miracode') != outline(baseline, 'miracode')
         records.append({'file': path.name, 'approvedStyle': approved_style,
                         'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                         'repeatBuildByteIdentical': True, **proof})
         if args.catalog:
-            catalog_source = args.catalog / 'src/unpatched-fonts/MiracodeText' / path.name
+            catalog_source = args.catalog / 'src/unpatched-fonts/MiracodeDiamond' / path.name
             assert catalog_source.read_bytes() == path.read_bytes()
             for variant in ('', 'Propo'):
-                patched_path = args.catalog / 'check-fonts/MiracodeText' / (
-                    'MiracodeTextNerdFont' + variant + '-' + entry['style'].replace(' ', '') + '.ttf')
+                patched_path = args.catalog / 'check-fonts/MiracodeDiamond' / (
+                    'MiracodeDiamondNerdFont' + variant + '-' + entry['style'].replace(' ', '') + '.ttf')
                 patched = TTFont(patched_path)
                 # Stock Normal/Propo outputs have mixed icon/ligature widths and
                 # FontForge emits isFixedPitch=0. Text advances stay one cell.
@@ -92,7 +99,7 @@ def main():
                     bottom = min(bottom, getattr(glyph, 'yMin', 0))
                 assert top <= patched['OS/2'].usWinAscent
                 assert bottom >= -patched['OS/2'].usWinDescent
-                assert patched['name'].getDebugName(1) == 'MiracodeText Nerd Font' + (' Propo' if variant else '')
+                assert patched['name'].getDebugName(1) == 'MiracodeDiamond Nerd Font' + (' Propo' if variant else '')
                 assert len(patched['name'].getDebugName(1)) <= 31
                 assert patched['name'].getDebugName(2) == entry['style']
                 output_records.append({'file': patched_path.name,
@@ -104,11 +111,11 @@ def main():
                                        'sha256': hashlib.sha256(patched_path.read_bytes()).hexdigest(),
                                        **proof})
     if args.catalog:
-        outputs = list((args.catalog / 'check-fonts/MiracodeText').glob('*.ttf'))
+        outputs = list((args.catalog / 'check-fonts/MiracodeDiamond').glob('*.ttf'))
         assert len(outputs) == 8, [path.name for path in outputs]
         assert not any('Mono' in path.name for path in outputs)
     report = {'pass': True, 'sourceFaces': records, 'catalogOutputs': output_records,
-              'publicNaming': 'provisional', 'maintenance': 'unconfirmed'}
+              'publicNaming': 'Miracode Diamond', 'maintenance': 'SimonRiemertzon'}
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'pass': True, 'sourceFaces': len(records),
                       'catalogOutputs': len(output_records)}))

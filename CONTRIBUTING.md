@@ -1,15 +1,20 @@
-# Contributing to Monocraft
+# Contributing to Miracode Diamond
 
-Contributions to the font are always welcome, though please be sure to adhere to these guidelines if you want your changes to be approved. 
+Miracode Diamond is maintained by SimonRiemertzon as a separate derivative of
+Idrees Hassan's Miracode. Keep original attribution and license notices intact.
+The [original guidance](docs/UPSTREAM-CONTRIBUTING.md) is retained for context;
+changes to this derivative do not imply approval by the original author.
 
-## Guiding Principles of Monocraft
+Preserve source coverage, fixed text advances, full multi-cell ligature widths,
+approved letter/punctuation geometry and four-face style linking. Add focused
+regression checks for changed behavior, including positive and negative word
+contexts. Keep application layout/settings and broad patcher changes separate.
 
-- Characters must look exactly the same as they do in Minecraft
-  - The only exception is if the character is too wide to fit in the font and still be monospaced. In this case, we would modify the glyph to fit if possible. Such modifications will likely need to be run by [@IdreesInc](https://github.com/IdreesInc) first to ensure that the style is kept consistent with other glyphs
-- Ligatures must always be helpful and never annoying
-  - This means that ligatures that might work in one context (like <= as an arrow) but fail in another (like when <= should instead be "less than or equal to") should not be added to Monocraft
-  - As a rule, it's usually better to only add ligatures that someone might expect rather than every possible ligature so as to avoid ligatures appearing out of place
-- The code that generates Monocraft should be clean, consistent, and maintainable
-  - If you feel as if a feature would be hard to add cleanly, contact [@IdreesInc](https://github.com/IdreesInc) instead and I'll see if we can work something out
+Use the pinned build environment documented in README.md. The build runs source
+geometry/style tests and actual HarfBuzz checks. For release work, compare the
+four base and patched fonts against the accepted v16 baseline, regenerate the
+official Nerd Fonts preview and document actual application test limits.
 
-So long as you keep in line with the above principles, your PR is much more likely to be merged. Good luck!
+Do not commit generated patched font binaries to the Nerd Fonts catalog.
+Disclose AI assistance accurately in relevant commits and pull request text.
+Keep focused proposals to original Miracode separate from derivative releases.

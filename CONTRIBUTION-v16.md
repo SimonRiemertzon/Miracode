@@ -1,5 +1,8 @@
 # Miracode Text 1.16 contribution source
 
+Historical preparation record. The confirmed Miracode Diamond plan and current
+build commands in README.md supersede provisional naming and maintenance below.
+
 This local candidate preserves the approved v16 font design from commit
 7152f7b2c3a84fdd22ce01bfde92dfec58567edf. It adds a reproducible, unpatched
 four-face build for Nerd Fonts review. It is not an official release of
