@@ -2,8 +2,13 @@
 
 Miracode Diamond is maintained by SimonRiemertzon as a separate derivative of
 Idrees Hassan's Miracode. Keep original attribution and license notices intact.
-The [original guidance](docs/UPSTREAM-CONTRIBUTING.md) is retained for context;
-changes to this derivative do not imply approval by the original author.
+The upstream project and destination for focused original-project contributions
+is [IdreesInc/Miracode](https://github.com/IdreesInc/Miracode).
+Changes to this derivative do not imply approval by the original author.
+
+This project follows its own documented design goals and accepted visual
+baseline. Review changes against the behavior below and the design history in
+README.md.
 
 Preserve source coverage, fixed text advances, full multi-cell ligature widths,
 approved letter/punctuation geometry and four-face style linking. Add focused
